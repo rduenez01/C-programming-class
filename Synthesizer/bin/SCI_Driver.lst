@@ -1,0 +1,174 @@
+
+Freescale HC12-Assembler 
+(c) Copyright Freescale 1987-2015
+
+ Abs. Rel.   Loc    Obj. code   Source line
+ ---- ----   ------ ---------   -----------
+    1    1                                
+    2    2                       ;**************************************************************
+    3    3                      ;* This stationery serves as the framework for a              *
+    4    4                      ;* user application. For a more comprehensive program that    *
+    5    5                      ;* demonstrates the more advanced functionality of this       *
+    6    6                      ;* processor, please see the demonstration applications       *
+    7    7                      ;* located in the examples subdirectory of the                *
+    8    8                      ;* Freescale CodeWarrior for the HC12 Program directory       *
+    9    9                      ;**************************************************************
+   10   10                      
+   11   11                      ; export symbols
+   12   12                                  XDEF SCI_Init, SCI_InChar, SCI_OutChar
+   13   13                      
+   14   14                      ; Include derivative-specific definitions 
+   15   15                      		INCLUDE 'derivative.inc'  		
+ 5468   16                      
+ 5469   17                      		    
+ 5470   18                      ; variable/data section
+ 5471   19          0000 0020       RDRF: EQU $20       ; Receive Data Register Full Bit
+ 5472   20          0000 0080       TDRE: EQU $80       ; Transmit Data Register Empty Bit
+ 5473   21                      ; Insert here your data definition. For demonstration, temp_byte is used.
+ 5474   22                      
+ 5475   23                      ; code section
+ 5476   24                      MyCode:     SECTION
+ 5477   25                      
+ 5478   26                      ;*******
+ 5479   27                      
+ 5480   28                      SCI_Init:
+ 5481   29                      
+ 5482   30   000000 7900 C8                 clr SCIBDH
+ 5483   31                       ;SCIBDL=250000/baudRate, these 5 cases only
+ 5484   32                       ;baudRate =  2400 bits/sec   SCIBDL=104
+ 5485   33                       ;baudRate =  4800 bits/sec   SCIBDL=52
+ 5486   34                       ;baudRate =  9600 bits/sec   SCIBDL=26
+ 5487   35                       ;baudRate =  19200 bits/sec  SCIBDL=13
+ 5488   36                       ;baudRate =  250000 bits/sec SCIBDL=1
+ 5489   37                       ;assumes a module clock frequency of 4 MHz
+ 5490   38                       ;sets baudRate to 250000 bits/sec if doesn't match one of the above
+ 5491   39   000003 8C09 60      baudRate1: cpd  #2400 
+ 5492   40   000006 2607                    bne  baudRate2
+ 5493   41   000008 CC09 60                 ldd #2400
+ 5494   42   00000B 5CC8                    std SCIBDH
+ 5495   43   00000D 202A                    bra break
+ 5496   44                          
+ 5497   45   00000F 8C12 C0      baudRate2: cpd  #4800 
+ 5498   46   000012 2607                    bne  baudRate3
+ 5499   47   000014 CC12 C0                 ldd #4800
+ 5500   48   000017 5CC8                    std SCIBDH
+ 5501   49   000019 201E                    bra break
+ 5502   50                                  
+ 5503   51   00001B 8C25 80      baudRate3: cpd  #9600 
+ 5504   52   00001E 2606                    bne  baudRate4
+ 5505   53   000020 C61A                    ldab #26
+ 5506   54   000022 5BC9                    stab SCIBDL
+ 5507   55   000024 2013                    bra break
+ 5508   56                                  
+ 5509   57   000026 8C4B 00      baudRate4: cpd  #19200
+ 5510   58   000029 2607                    bne  baudRate5
+ 5511   59   00002B CC4B 00                 ldd #19200
+ 5512   60   00002E 5CC9                    std SCIBDL
+ 5513   61   000030 2007                    bra break
+ 5514   62                                  
+ 5515   63   000032 CC00 01      baudRate5: ldd #1
+ 5516   64   000035 5CC9                    std SCIBDL
+
+Freescale HC12-Assembler 
+(c) Copyright Freescale 1987-2015
+
+ Abs. Rel.   Loc    Obj. code   Source line
+ ---- ----   ------ ---------   -----------
+ 5517   65   000037 2000                    bra break    
+ 5518   66                                   
+ 5519   67                      ; SCICR1 = 0  >> bit value meaning
+ 5520   68                      ;    7   0    LOOPS, no looping, normal
+ 5521   69                      ;    6   0    WOMS, normal high/low outputs
+ 5522   70                      ;    5   0    RSRC, not appliable with LOOPS=0
+ 5523   71                      ;    4   0    M, 1 start, 8 data, 1 stop
+ 5524   72                      ;    3   0    WAKE, wake by idle (not applicable)
+ 5525   73                      ;    2   0    ILT, short idle time (not applicable)
+ 5526   74                      ;    1   0    PE, no parity
+ 5527   75                      ;    0   0    PT, parity type (not applicable with PE=0) */  
+ 5528   76                      
+ 5529   77                      ; SCICR2 = 0x0c >> bit value meaning
+ 5530   78                      ;    7   0    TIE, no transmit interrupts on TDRE
+ 5531   79                      ;    6   0    TCIE, no transmit interrupts on TC
+ 5532   80                      ;    5   0    RIE, no receive interrupts on RDRF
+ 5533   81                      ;    4   0    ILIE, no interrupts on idle
+ 5534   82                      ;    3   1    TE, enable transmitter
+ 5535   83                      ;    2   1    RE, enable receiver
+ 5536   84                      ;    1   0    RWU, no receiver wakeup
+ 5537   85                      ;    0   0    SBK, no send break */ 
+ 5538   86   000039 4DCA FF      break:     bclr  SCICR1, %11111111
+ 5539   87   00003C 4CCB 0C                 bset  SCICR2, %00001100
+ 5540   88   00003F 4DCB F3                 bclr  SCICR2, %11110011
+ 5541   89   000042 3D                      rts
+ 5542   90                       
+ 5543   91                       
+ 5544   92                      ;*******
+ 5545   93                       
+ 5546   94                       SCI_InChar: 
+ 5547   95                       
+ 5548   96                      ;//-------------------------SCI_InChar------------------------
+ 5549   97                      ;// Wait for new serial port input, busy-waiting synchronization
+ 5550   98                      ;// The input is not echoed
+ 5551   99                      ;// Input: none
+ 5552  100                      ;// Output: ASCII code for key typed
+ 5553  101                      ;char SCI_InChar(void){
+ 5554  102                      ;  while((SCISR1 & RDRF) == 0){};
+ 5555  103                      ;  return(SCIDRL);
+ 5556  104                      ;}
+ 5557  105                                 
+ 5558  106   000043 4FCC 20FC              brclr  SCISR1, RDRF, SCI_InChar
+ 5559  107   000047 D6CF                   ldab   SCIDRL
+ 5560  108   000049 3D                     rts
+ 5561  109                       
+ 5562  110                          
+ 5563  111                           
+ 5564  112                       
+ 5565  113                       
+ 5566  114                       
+ 5567  115                      ;*******
+ 5568  116                       
+ 5569  117                                          
+ 5570  118                      SCI_OutChar:   
+ 5571  119                                         
+ 5572  120                      ;//-------------------------SCI_OutChar------------------------
+ 5573  121                      ;// Wait for buffer to be empty, output 8-bit to serial port
+ 5574  122                      ;// busy-waiting synchronization
+ 5575  123                      ;// Input: 8-bit data to be transferred
+ 5576  124                      ;// Output: none                   
+ 5577  125                      ;void SCI_OutChar(char data){
+ 5578  126                      ;  while((SCISR1 & TDRE) == 0){};
+ 5579  127                      ;  SCIDRL = data;
+ 5580  128                      ;}                            
+
+Freescale HC12-Assembler 
+(c) Copyright Freescale 1987-2015
+
+ Abs. Rel.   Loc    Obj. code   Source line
+ ---- ----   ------ ---------   -----------
+ 5581  129                                         
+ 5582  130   00004A 4FCC 80FC               brclr  SCISR1,TDRE, SCI_OutChar  
+ 5583  131   00004E 5BCF                    stab  SCIDRL
+ 5584  132   000050 3D                      rts
+ 5585  133                       
+ 5586  134                       
+ 5587  135                       
+ 5588  136                       
+ 5589  137                      
+ 5590  138                      
+ 5591  139                      
+ 5592  140                      
+ 5593  141                      
+ 5594  142                      
+ 5595  143                      
+ 5596  144                      
+ 5597  145                      
+ 5598  146                      
+ 5599  147                      
+ 5600  148                      
+ 5601  149                      
+ 5602  150                      
+ 5603  151                      
+ 5604  152                      
+ 5605  153                      
+ 5606  154                      
+ 5607  155                      
+ 5608  156                      
